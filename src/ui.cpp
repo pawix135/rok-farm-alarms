@@ -123,10 +123,8 @@ namespace UI
     void RenderCharacterSelectPanel(Navigation &nav_state, float startX, float startY, float width, float height, UIState &uiState)
     {
 
-        // Background panel
         rl::GuiPanel(rl::Rectangle{startX, startY, width, height}, "Characters");
 
-        // If no account is selected, we have nothing to render here
         if (nav_state.activeAccount == nullptr)
             return;
 
@@ -173,7 +171,6 @@ namespace UI
                 currentX += buttonWidth + padding;
             }
 
-            // Click "ADD +" button -> Open popup trigger
             if (rl::GuiButton(rl::Rectangle{currentX, currentY, buttonWidth, buttonHeight}, "ADD +"))
             {
                 uiState.showAddCharDialog = true;
@@ -207,18 +204,15 @@ namespace UI
             uiState.secsEdit = !uiState.secsEdit;
         currentX += 50;
 
-        // Level Picker
         rl::GuiLabel(rl::Rectangle{currentX, innerY, 30, 25}, "Lvl:");
         currentX += 30;
         if (rl::GuiSpinner(rl::Rectangle{currentX, innerY, 80, 25}, nullptr, &uiState.activeLevel, 1, 9, uiState.levelEditMode))
             uiState.levelEditMode = !uiState.levelEditMode;
         currentX += 95;
 
-        // Dropdown Res Label spot reserved
         float resX = currentX;
         currentX += 115;
 
-        // START Button
         if (rl::GuiButton(rl::Rectangle{currentX, innerY, 80, 25}, "START"))
         {
             int totalSecs = (uiState.hours * 3600) + (uiState.minutes * 60) + uiState.seconds;
@@ -238,7 +232,6 @@ namespace UI
             }
         }
 
-        // Dropdown Box (Drawn last so it renders on top)
         rl::GuiLabel(rl::Rectangle{resX, innerY, 30, 25}, "Res:");
         if (rl::GuiDropdownBox(rl::Rectangle{resX + 30, innerY, 70, 25}, "Food;Wood;Stone;Gold;Gems", &uiState.activeResource, uiState.resourceEditMode))
         {
@@ -276,46 +269,38 @@ namespace UI
 
             auto &gatherers = nav_state.activeCharacter->gatherers;
 
-            // Use index-based loop for safe deletion during iteration
             for (size_t i = 0; i < gatherers.size();)
             {
                 auto &gatherer = gatherers[i];
 
-                // Background box for individual timer
                 rl::GuiPanel(rl::Rectangle{currentX, currentY, itemWidth, itemHeight}, nullptr);
 
-                // Timer display text
                 rl::GuiLabel(rl::Rectangle{currentX + 10, currentY + 5, 200, 30}, gatherer.GetFormattedTime().c_str());
 
-                // Determine if the timer is done or active
                 bool isFinished = !gatherer.isActive || (gatherer.GetRemainingSeconds() <= 0.0f);
                 const char *buttonLabel = isFinished ? "REMOVE" : "STOP";
 
-                // Render STOP / REMOVE button
                 if (rl::GuiButton(rl::Rectangle{currentX + itemWidth - 80, currentY + 5, 70, 30}, buttonLabel))
                 {
-                    // Remove timer from vector
                     gatherers.erase(gatherers.begin() + i);
                     dataChanged = true;
 
-                    // Do not increment `i` since element at `i` was erased
                     continue;
                 }
 
                 currentY += itemHeight + padding;
-                i++; // Advance loop index
+                i++;
             }
         }
         rl::EndScissorMode();
     }
 
-    // Renders the Add Account Popup (Top-most layer)
     void RenderAddAccountDialog(Navigation &nav_state, std::vector<ROK::Account> &accounts, int screenWidth, int screenHeight, UIState &uiState, bool &dataChanged)
     {
         if (!uiState.showAddAccountDialog)
             return;
 
-        rl::GuiLock(); // Lock lower layers
+        rl::GuiLock();
 
         float dialogW = 320.0f;
         float dialogH = 170.0f;
@@ -338,7 +323,6 @@ namespace UI
             uiState.accountEditMode = !uiState.accountEditMode;
         }
 
-        // SAVE BUTTON
         if (rl::GuiButton(rl::Rectangle{dialogX + 20, dialogY + 115, 130, 35}, "Save"))
         {
             if (uiState.accountEmailBuffer[0] != '\0')
@@ -351,7 +335,6 @@ namespace UI
 
                 accounts.push_back(newAccount);
 
-                // Re-point safely after potential vector reallocation
                 nav_state.activeAccount = nullptr;
                 for (auto &acc : accounts)
                 {
@@ -368,7 +351,6 @@ namespace UI
             uiState.accountEmailBuffer[0] = '\0';
         }
 
-        // CANCEL BUTTON
         if (rl::GuiButton(rl::Rectangle{dialogX + 170, dialogY + 115, 130, 35}, "Cancel"))
         {
             uiState.showAddAccountDialog = false;
@@ -377,7 +359,6 @@ namespace UI
         }
     }
 
-    // Renders the Add Character Popup (Top-most layer)
     void RenderAddCharacterDialog(Navigation &nav_state, int screenWidth, int screenHeight, UIState &uiState, bool &dataChanged)
     {
         if (!uiState.showAddCharDialog || nav_state.activeAccount == nullptr)
@@ -406,7 +387,6 @@ namespace UI
             uiState.charEditMode = !uiState.charEditMode;
         }
 
-        // SAVE BUTTON
         if (rl::GuiButton(rl::Rectangle{dialogX + 20, dialogY + 115, 130, 35}, "Save"))
         {
             if (uiState.charNameBuffer[0] != '\0')
@@ -417,10 +397,8 @@ namespace UI
 
                 int activeCharId = nav_state.activeCharacter ? nav_state.activeCharacter->id : -1;
 
-                // Add character to active account
                 nav_state.activeAccount->characters.push_back(newChar);
 
-                // Re-point activeCharacter in case vector reallocated
                 nav_state.activeCharacter = nullptr;
                 for (auto &ch : nav_state.activeAccount->characters)
                 {
@@ -437,7 +415,6 @@ namespace UI
             uiState.charNameBuffer[0] = '\0';
         }
 
-        // CANCEL BUTTON
         if (rl::GuiButton(rl::Rectangle{dialogX + 170, dialogY + 115, 130, 35}, "Cancel"))
         {
             uiState.showAddCharDialog = false;

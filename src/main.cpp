@@ -52,33 +52,22 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 void UpdateLogic(std::vector<ROK::Account> &accounts)
 {
-
-    float dt = rl::GetFrameTime();
-
     long long now = static_cast<long long>(std::time(nullptr));
     bool stateChanged = false;
 
-    for (auto &account : accounts)
-    {
-        for (auto &character : account.characters)
-        {
-            for (auto &gatherer : character.gatherers)
-            {
-                if (gatherer.isActive)
-                {
-                    if (now >= gatherer.targetTimestamp)
-                    {
-                        gatherer.isActive = false;
-                        stateChanged = true;
+    ROK::ForEachGatherer(accounts, [&](ROK::Account &account, ROK::Character &character, ROK::Gatherer &gatherer)
+                         {
+        if (!gatherer.isActive) return;
 
-                        std::string title = "Gathering Complete!";
-                        std::string msg = character.name + " (" + account.email + ") finished gathering!";
-                        WinApp::SendNotification(title.c_str(), msg.c_str());
-                    }
-                }
-            }
-        }
-    }
+        if (now >= gatherer.targetTimestamp)
+        {
+            gatherer.isActive = false;
+            stateChanged = true;
+
+            std::string title = "Gathering Complete!";
+            std::string msg = character.name + " (" + account.email + ") finished gathering!";
+            WinApp::SendNotification(title.c_str(), msg.c_str());
+        } });
 
     if (stateChanged)
     {

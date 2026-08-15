@@ -2,9 +2,11 @@
 #include <cstdio>
 #include <ctime>
 
-namespace ROK {
+namespace ROK
+{
 
-    std::string Gatherer::GetFormattedTime() const {
+    std::string Gatherer::GetFormattedTime() const
+    {
         float totalSecs = GetRemainingSeconds();
         int h = static_cast<int>(totalSecs) / 3600;
         int m = (static_cast<int>(totalSecs) % 3600) / 60;
@@ -15,21 +17,39 @@ namespace ROK {
         return std::string(buffer);
     }
 
-    float Gatherer::GetRemainingSeconds() const {
-        if (!isActive) return 0.0f;
+    float Gatherer::GetRemainingSeconds() const
+    {
+        if (!isActive)
+            return 0.0f;
         long long now = static_cast<long long>(std::time(nullptr));
         long long diff = targetTimestamp - now;
         return diff > 0 ? static_cast<float>(diff) : 0.0f;
     }
 
-    void Gatherer::SetTimer(int hours, int minutes, int seconds) {
+    void Gatherer::SetTimer(int hours, int minutes, int seconds)
+    {
         long long duration = (hours * 3600LL) + (minutes * 60LL) + seconds;
         targetTimestamp = static_cast<long long>(std::time(nullptr)) + duration;
         isActive = true;
     }
 
-    void Account::AddCharacter(int charId, std::string charName) {
-        characters.push_back({ charId, charName, {} });
+    void Account::AddCharacter(int charId, std::string charName)
+    {
+        characters.push_back({charId, charName, {}});
+    }
+
+    void ForEachGatherer(std::vector<Account> &accounts, const GathererVisitor &visitor)
+    {
+        for (auto &account : accounts)
+        {
+            for (auto &character : account.characters)
+            {
+                for (auto &gatherer : character.gatherers)
+                {
+                    visitor(account, character, gatherer);
+                }
+            }
+        }
     }
 
 }

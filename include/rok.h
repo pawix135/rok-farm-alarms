@@ -1,11 +1,14 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <functional>
 #include "json.hpp"
 
-namespace ROK {
+namespace ROK
+{
 
-    enum class ResourceType {
+    enum class ResourceType
+    {
         Food,
         Wood,
         Stone,
@@ -13,7 +16,8 @@ namespace ROK {
         Gems
     };
 
-    struct Gatherer {
+    struct Gatherer
+    {
         int id;
         int resourceLvl;
         ResourceType resource;
@@ -33,10 +37,10 @@ namespace ROK {
         resourceLvl,
         resource,
         targetTimestamp,
-        isActive
-    )
+        isActive)
 
-        struct Character {
+    struct Character
+    {
         int id;
         std::string name;
         std::vector<Gatherer> gatherers;
@@ -46,7 +50,8 @@ namespace ROK {
 
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, gatherers)
 
-        struct Account {
+    struct Account
+    {
         int id;
         std::string email;
         std::vector<Character> characters;
@@ -57,4 +62,7 @@ namespace ROK {
     };
 
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Account, id, email, characters)
+
+    using GathererVisitor = std::function<void(Account &, Character &, Gatherer &)>;
+    void ForEachGatherer(std::vector<Account> &accounts, const GathererVisitor &visitor);
 }
