@@ -1,0 +1,15 @@
+.vs/
+x64/
+Debug/
+Release/
+*.user
+*.aps
+*.ncb
+*.suo
+*.ipch
+*.db
+
+bin/
+obj/
+
+save.json
