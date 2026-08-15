@@ -9,11 +9,10 @@ void UpdateLogic(std::vector<ROK::Account> &accounts);
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
 {
+    // TODO: ADD ICON
+    Store::SaveData user_save = Store::LoadAll();
 
     rl::ChangeDirectory(rl::GetApplicationDirectory());
-
-    Store::SaveData user_save = Store::LoadAll();
-    int size = user_save.window_width;
     rl::SetConfigFlags(rl::FLAG_WINDOW_RESIZABLE);
     rl::InitWindow(user_save.window_width, user_save.window_height, "Farm Alarms");
     rl::SetTargetFPS(60);
