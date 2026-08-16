@@ -2,7 +2,7 @@
 
 // APP
 #define APP_NAME "Farm Alarms"
-#define APP_VERSION 1
+#define APP_VERSION 1.1
 
 // WINDOW
 #define DEFAULT_WINDOW_WIDTH 800
