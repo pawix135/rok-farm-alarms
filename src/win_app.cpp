@@ -14,9 +14,6 @@ namespace WinApp {
 
 		bool g_IsRunning = true;
 
-		int windowWidth = DEFAULT_WINDOW_WIDTH;
-		int windowHeight = DEFAULT_WINDOW_HEIGHT;
-
 		LRESULT CALLBACK SubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			if (msg == WM_TRAYICON) {
 
@@ -56,10 +53,7 @@ namespace WinApp {
 		}
 	}
 
-	void Init(HWND hwnd, int width, int height) {
-
-		windowWidth = width;
-		windowHeight = height;
+	void Init(HWND hwnd) {
 
 		g_Hwnd = hwnd;
 
@@ -70,7 +64,7 @@ namespace WinApp {
 		g_TrayIconData.uID = 100;
 		g_TrayIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 		g_TrayIconData.uCallbackMessage = WM_TRAYICON;
-		g_TrayIconData.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+		g_TrayIconData.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(101));
 		strncpy_s(g_TrayIconData.szTip, APP_NAME, sizeof(g_TrayIconData.szTip));
 		Shell_NotifyIconA(NIM_ADD, &g_TrayIconData);
 	}
@@ -112,19 +106,6 @@ namespace WinApp {
 		g_TrayIconData.dwInfoFlags = NIIF_INFO;
 
 		Shell_NotifyIconA(NIM_MODIFY, &g_TrayIconData);
-	}
-
-	void SetWindowSize(int width = NULL, int height = NULL) {
-		if (width) windowWidth = width;
-		if (height) windowHeight = height;
-	}
-
-	int GetWindowWidth() {
-		return windowWidth;
-	}
-
-	int GetWindowHeight() {
-		return windowHeight;
 	}
 
 	void Exit() {

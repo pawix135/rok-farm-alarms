@@ -107,7 +107,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(ProjectDir)libs\raylib.lib;winmm.lib;opengl32.lib;gdi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -144,6 +144,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\app_manager.h" />
     <ClInclude Include="include\config.h" />
     <ClInclude Include="include\helpers.h" />
     <ClInclude Include="include\json.hpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="resource1.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\app_manager.cpp" />
     <ClCompile Include="src\helpers.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\rok.cpp" />

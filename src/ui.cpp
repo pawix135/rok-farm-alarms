@@ -1,6 +1,7 @@
 #include "ui.h"
 #include "raylib_wrapper.h"
 #include "helpers.h"
+#include "config.h"
 
 #define CHARACTER_PANEL_HEIGHT 150.0f
 #define ALARM_PANEL_HEIGHT 70.0f
@@ -8,7 +9,7 @@
 namespace UI
 {
 
-    static void ResetTimerForm(UIState &uiState)
+    static void ResetTimerForm(UIState& uiState)
     {
         uiState.hours = 0;
         uiState.minutes = 0;
@@ -20,14 +21,49 @@ namespace UI
         uiState.resourceEditMode = false;
         uiState.activeLevel = 1;
         uiState.levelEditMode = false;
+        uiState.needSave = false;
     }
 
-    bool RenderUI(Navigation &nav_state, std::vector<ROK::Account> &accounts, int width, int height, UIState &uiState)
+    void InitUI(Store::SaveData user_save) {
+
+        // App window
+        rl::SetConfigFlags(rl::FLAG_WINDOW_RESIZABLE);
+        rl::InitWindow(user_save.window_width, user_save.window_height, APP_NAME);
+
+        rl::SetTargetFPS(30);
+
+        // Change app icon from default
+        UpdateWindowIcon();
+
+        InitTheme();
+
+        // Remove ESC as exit key
+        rl::SetExitKey(rl::KEY_NULL);
+
+    }
+
+    void SetWorkingDirectory() {
+        rl::ChangeDirectory(rl::GetApplicationDirectory());
+    }
+
+    void UpdateWindowIcon() {
+        rl::Image appIcon = rl::LoadImage("resources/icon.png");
+
+        if (appIcon.data != nullptr) {
+            rl::SetWindowIcon(appIcon);
+            rl::UnloadImage(appIcon);
+        }
+
+    }
+
+    HWND GetWindowHandle() {
+        return (HWND)rl::GetWindowHandle();
+    }
+
+    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, int width, int height, UIState& uiState)
     {
         rl::BeginDrawing();
         rl::ClearBackground(rl::GRAY);
-
-        bool dataChanged = false;
 
         int currentCharacterId = nav_state.activeCharacter ? nav_state.activeCharacter->id : -1;
         if (currentCharacterId != uiState.lastActiveCharacterId)
@@ -43,26 +79,25 @@ namespace UI
 
         RenderAccountPanel(nav_state, accounts, width, height, uiState);
         RenderCharacterSelectPanel(nav_state, rightPanelX, 0, rightPanelWidth, CHARACTER_PANEL_HEIGHT, uiState);
-        RenderAddAlarmPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT, rightPanelWidth, ALARM_PANEL_HEIGHT, uiState, dataChanged);
-        RenderActiveTimersPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT + ALARM_PANEL_HEIGHT, rightPanelWidth, timersPanelHeight, uiState, dataChanged);
+        RenderAddAlarmPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT, rightPanelWidth, ALARM_PANEL_HEIGHT, uiState);
+        RenderActiveTimersPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT + ALARM_PANEL_HEIGHT, rightPanelWidth, timersPanelHeight, uiState);
 
-        RenderAddAccountDialog(nav_state, accounts, width, height, uiState, dataChanged);
-        RenderAddCharacterDialog(nav_state, width, height, uiState, dataChanged);
+        RenderAddAccountDialog(nav_state, accounts, width, height, uiState);
+        RenderAddCharacterDialog(nav_state, width, height, uiState);
 
         rl::EndDrawing();
 
-        return dataChanged;
     }
 
-    void RenderAccountPanel(Navigation &nav_state, std::vector<ROK::Account> &accounts, int width, int height, UIState &uiState)
+    void RenderAccountPanel(Navigation& nav_state, std::vector<ROK::Account>& accounts, int width, int height, UIState& uiState)
     {
 
         float panelWidth = width / 3.0f;
         float panelHeight = (float)height;
 
-        rl::GuiPanel(rl::Rectangle{0, 0, panelWidth, panelHeight}, "Accounts");
+        rl::GuiPanel(rl::Rectangle{ 0, 0, panelWidth, panelHeight }, "Accounts");
 
-        rl::Rectangle viewRect = {5, 25, panelWidth - 10, panelHeight - 90};
+        rl::Rectangle viewRect = { 5, 25, panelWidth - 10, panelHeight - 90 };
         float totalContentHeight = accounts.size() * 50.0f + 10.0f;
 
         if (totalContentHeight < viewRect.height)
@@ -70,7 +105,7 @@ namespace UI
             totalContentHeight = viewRect.height;
         }
 
-        rl::Rectangle contentRect = {0, 0, panelWidth - 26, totalContentHeight};
+        rl::Rectangle contentRect = { 0, 0, panelWidth - 26, totalContentHeight };
 
         rl::GuiScrollPanel(viewRect, nullptr, contentRect, &uiState.accountScrollPos, &uiState.accountViewScrollRect);
 
@@ -80,7 +115,7 @@ namespace UI
             float startY = uiState.accountViewScrollRect.y + uiState.accountScrollPos.y + 5.0f;
             float buttonWidth = contentRect.width - 10.0f;
 
-            for (auto &acc : accounts)
+            for (auto& acc : accounts)
             {
                 bool isSelected = (nav_state.activeAccount != nullptr && nav_state.activeAccount->id == acc.id);
 
@@ -89,7 +124,7 @@ namespace UI
                     rl::GuiSetState(rl::STATE_PRESSED);
                 }
 
-                if (rl::GuiButton(rl::Rectangle{startX, startY, buttonWidth, 40}, acc.email.c_str()))
+                if (rl::GuiButton(rl::Rectangle{ startX, startY, buttonWidth, 40 }, acc.email.c_str()))
                 {
                     nav_state.activeAccount = &acc;
 
@@ -112,7 +147,7 @@ namespace UI
         float addBtnY = panelHeight - 55.0f;
         float addBtnWidth = panelWidth - 20.0f;
 
-        if (rl::GuiButton(rl::Rectangle{10, addBtnY, addBtnWidth, 40}, "Add Account +"))
+        if (rl::GuiButton(rl::Rectangle{ 10, addBtnY, addBtnWidth, 40 }, "Add Account +"))
         {
             uiState.showAddAccountDialog = true;
             uiState.accountEmailBuffer[0] = '\0';
@@ -120,10 +155,14 @@ namespace UI
         }
     }
 
-    void RenderCharacterSelectPanel(Navigation &nav_state, float startX, float startY, float width, float height, UIState &uiState)
+    void MarkDirty(UIState& uiState) {
+        uiState.needSave = true;
+    }
+
+    void RenderCharacterSelectPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState)
     {
 
-        rl::GuiPanel(rl::Rectangle{startX, startY, width, height}, "Characters");
+        rl::GuiPanel(rl::Rectangle{ startX, startY, width, height }, "Characters");
 
         if (nav_state.activeAccount == nullptr)
             return;
@@ -131,7 +170,7 @@ namespace UI
         float padding = 10.0f;
         float titleBarHeight = 30.0f;
 
-        rl::Rectangle viewRect = {startX + padding, startY + titleBarHeight, width - 2 * padding, height - titleBarHeight - padding};
+        rl::Rectangle viewRect = { startX + padding, startY + titleBarHeight, width - 2 * padding, height - titleBarHeight - padding };
 
         float buttonWidth = 100.0f;
         float buttonHeight = viewRect.height - 25.0f;
@@ -144,7 +183,7 @@ namespace UI
             totalContentWidth = viewRect.width;
         }
 
-        rl::Rectangle contentRect = {0, 0, totalContentWidth, viewRect.height - 16.0f};
+        rl::Rectangle contentRect = { 0, 0, totalContentWidth, viewRect.height - 16.0f };
 
         rl::GuiScrollPanel(viewRect, nullptr, contentRect, &uiState.characterScrollPos, &uiState.characterViewScrollRect);
 
@@ -153,7 +192,7 @@ namespace UI
             float currentX = uiState.characterViewScrollRect.x + uiState.characterScrollPos.x + padding;
             float currentY = uiState.characterViewScrollRect.y + 5.0f;
 
-            for (auto &character : nav_state.activeAccount->characters)
+            for (auto& character : nav_state.activeAccount->characters)
             {
                 bool isSelected = (nav_state.activeCharacter != nullptr && nav_state.activeCharacter->id == character.id);
 
@@ -162,7 +201,7 @@ namespace UI
                     rl::GuiSetState(rl::STATE_PRESSED);
                 }
 
-                if (rl::GuiButton(rl::Rectangle{currentX, currentY, buttonWidth, buttonHeight}, character.name.c_str()))
+                if (rl::GuiButton(rl::Rectangle{ currentX, currentY, buttonWidth, buttonHeight }, character.name.c_str()))
                 {
                     nav_state.activeCharacter = &character;
                 }
@@ -171,7 +210,7 @@ namespace UI
                 currentX += buttonWidth + padding;
             }
 
-            if (rl::GuiButton(rl::Rectangle{currentX, currentY, buttonWidth, buttonHeight}, "ADD +"))
+            if (rl::GuiButton(rl::Rectangle{ currentX, currentY, buttonWidth, buttonHeight }, "ADD +"))
             {
                 uiState.showAddCharDialog = true;
                 uiState.charNameBuffer[0] = '\0';
@@ -181,9 +220,9 @@ namespace UI
         rl::EndScissorMode();
     }
 
-    void RenderAddAlarmPanel(Navigation &nav_state, float startX, float startY, float width, float height, UIState &uiState, bool &dataChanged)
+    void RenderAddAlarmPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState)
     {
-        rl::GuiPanel(rl::Rectangle{startX, startY, width, height}, "Section For Adding Timers");
+        rl::GuiPanel(rl::Rectangle{ startX, startY, width, height }, "Section For Adding Timers");
 
         if (nav_state.activeCharacter == nullptr)
             return;
@@ -191,29 +230,29 @@ namespace UI
         float innerY = startY + 35.0f;
         float currentX = startX + 10.0f;
 
-        rl::GuiLabel(rl::Rectangle{currentX, innerY, 35, 25}, "Time:");
+        rl::GuiLabel(rl::Rectangle{ currentX, innerY, 35, 25 }, "Time:");
         currentX += 40;
 
-        if (rl::GuiValueBox(rl::Rectangle{currentX, innerY, 35, 25}, nullptr, &uiState.hours, 0, 99, uiState.hoursEdit))
+        if (rl::GuiValueBox(rl::Rectangle{ currentX, innerY, 35, 25 }, nullptr, &uiState.hours, 0, 99, uiState.hoursEdit))
             uiState.hoursEdit = !uiState.hoursEdit;
         currentX += 40;
-        if (rl::GuiValueBox(rl::Rectangle{currentX, innerY, 35, 25}, nullptr, &uiState.minutes, 0, 59, uiState.minsEdit))
+        if (rl::GuiValueBox(rl::Rectangle{ currentX, innerY, 35, 25 }, nullptr, &uiState.minutes, 0, 59, uiState.minsEdit))
             uiState.minsEdit = !uiState.minsEdit;
         currentX += 40;
-        if (rl::GuiValueBox(rl::Rectangle{currentX, innerY, 35, 25}, nullptr, &uiState.seconds, 0, 59, uiState.secsEdit))
+        if (rl::GuiValueBox(rl::Rectangle{ currentX, innerY, 35, 25 }, nullptr, &uiState.seconds, 0, 59, uiState.secsEdit))
             uiState.secsEdit = !uiState.secsEdit;
         currentX += 50;
 
-        rl::GuiLabel(rl::Rectangle{currentX, innerY, 30, 25}, "Lvl:");
+        rl::GuiLabel(rl::Rectangle{ currentX, innerY, 30, 25 }, "Lvl:");
         currentX += 30;
-        if (rl::GuiSpinner(rl::Rectangle{currentX, innerY, 80, 25}, nullptr, &uiState.activeLevel, 1, 9, uiState.levelEditMode))
+        if (rl::GuiSpinner(rl::Rectangle{ currentX, innerY, 80, 25 }, nullptr, &uiState.activeLevel, 1, 9, uiState.levelEditMode))
             uiState.levelEditMode = !uiState.levelEditMode;
         currentX += 95;
 
         float resX = currentX;
         currentX += 115;
 
-        if (rl::GuiButton(rl::Rectangle{currentX, innerY, 80, 25}, "START"))
+        if (rl::GuiButton(rl::Rectangle{ currentX, innerY, 80, 25 }, "START"))
         {
             int totalSecs = (uiState.hours * 3600) + (uiState.minutes * 60) + uiState.seconds;
             if (totalSecs > 0)
@@ -225,29 +264,29 @@ namespace UI
                 g.SetTimer(uiState.hours, uiState.minutes, uiState.seconds);
 
                 nav_state.activeCharacter->gatherers.push_back(g);
-                dataChanged = true;
+                MarkDirty(uiState);
                 uiState.hours = 0;
                 uiState.minutes = 0;
                 uiState.seconds = 0;
             }
         }
 
-        rl::GuiLabel(rl::Rectangle{resX, innerY, 30, 25}, "Res:");
-        if (rl::GuiDropdownBox(rl::Rectangle{resX + 30, innerY, 70, 25}, "Food;Wood;Stone;Gold;Gems", &uiState.activeResource, uiState.resourceEditMode))
+        rl::GuiLabel(rl::Rectangle{ resX, innerY, 30, 25 }, "Res:");
+        if (rl::GuiDropdownBox(rl::Rectangle{ resX + 30, innerY, 70, 25 }, "Food;Wood;Stone;Gold;Gems", &uiState.activeResource, uiState.resourceEditMode))
         {
             uiState.resourceEditMode = !uiState.resourceEditMode;
         }
     }
 
-    void RenderActiveTimersPanel(Navigation &nav_state, float startX, float startY, float width, float height, UIState &uiState, bool &dataChanged)
+    void RenderActiveTimersPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState)
     {
-        rl::GuiPanel(rl::Rectangle{startX, startY, width, height}, "Active Timers");
+        rl::GuiPanel(rl::Rectangle{ startX, startY, width, height }, "Active Timers");
 
         if (nav_state.activeCharacter == nullptr)
             return;
 
         float padding = 10.0f;
-        rl::Rectangle viewRect = {startX + padding, startY + 25.0f, width - 2 * padding, height - 35.0f};
+        rl::Rectangle viewRect = { startX + padding, startY + 25.0f, width - 2 * padding, height - 35.0f };
 
         float itemHeight = 40.0f;
         float totalContentHeight = nav_state.activeCharacter->gatherers.size() * (itemHeight + padding) + padding;
@@ -257,7 +296,7 @@ namespace UI
             totalContentHeight = viewRect.height;
         }
 
-        rl::Rectangle contentRect = {0, 0, viewRect.width - 16.0f, totalContentHeight};
+        rl::Rectangle contentRect = { 0, 0, viewRect.width - 16.0f, totalContentHeight };
 
         rl::GuiScrollPanel(viewRect, nullptr, contentRect, &uiState.timersScrollPos, &uiState.timersViewScrollRect);
 
@@ -267,23 +306,23 @@ namespace UI
             float currentY = uiState.timersViewScrollRect.y + uiState.timersScrollPos.y + padding;
             float itemWidth = contentRect.width - padding;
 
-            auto &gatherers = nav_state.activeCharacter->gatherers;
+            auto& gatherers = nav_state.activeCharacter->gatherers;
 
             for (size_t i = 0; i < gatherers.size();)
             {
-                auto &gatherer = gatherers[i];
+                auto& gatherer = gatherers[i];
 
-                rl::GuiPanel(rl::Rectangle{currentX, currentY, itemWidth, itemHeight}, nullptr);
+                rl::GuiPanel(rl::Rectangle{ currentX, currentY, itemWidth, itemHeight }, nullptr);
 
-                rl::GuiLabel(rl::Rectangle{currentX + 10, currentY + 5, 200, 30}, gatherer.GetFormattedTime().c_str());
+                rl::GuiLabel(rl::Rectangle{ currentX + 10, currentY + 5, 200, 30 }, gatherer.GetFormattedTime().c_str());
 
                 bool isFinished = !gatherer.isActive || (gatherer.GetRemainingSeconds() <= 0.0f);
-                const char *buttonLabel = isFinished ? "REMOVE" : "STOP";
+                const char* buttonLabel = isFinished ? "REMOVE" : "STOP";
 
-                if (rl::GuiButton(rl::Rectangle{currentX + itemWidth - 80, currentY + 5, 70, 30}, buttonLabel))
+                if (rl::GuiButton(rl::Rectangle{ currentX + itemWidth - 80, currentY + 5, 70, 30 }, buttonLabel))
                 {
                     gatherers.erase(gatherers.begin() + i);
-                    dataChanged = true;
+                    MarkDirty(uiState);
 
                     continue;
                 }
@@ -295,7 +334,7 @@ namespace UI
         rl::EndScissorMode();
     }
 
-    void RenderAddAccountDialog(Navigation &nav_state, std::vector<ROK::Account> &accounts, int screenWidth, int screenHeight, UIState &uiState, bool &dataChanged)
+    void RenderAddAccountDialog(Navigation& nav_state, std::vector<ROK::Account>& accounts, int screenWidth, int screenHeight, UIState& uiState)
     {
         if (!uiState.showAddAccountDialog)
             return;
@@ -307,7 +346,7 @@ namespace UI
         float dialogX = (screenWidth - dialogW) / 2.0f;
         float dialogY = (screenHeight - dialogH) / 2.0f;
 
-        if (rl::GuiWindowBox(rl::Rectangle{dialogX, dialogY, dialogW, dialogH}, "New Account"))
+        if (rl::GuiWindowBox(rl::Rectangle{ dialogX, dialogY, dialogW, dialogH }, "New Account"))
         {
             uiState.showAddAccountDialog = false;
             uiState.accountEditMode = false;
@@ -316,14 +355,14 @@ namespace UI
 
         rl::GuiUnlock();
 
-        rl::GuiLabel(rl::Rectangle{dialogX + 20, dialogY + 45, dialogW - 40, 20}, "Enter Email Address:");
+        rl::GuiLabel(rl::Rectangle{ dialogX + 20, dialogY + 45, dialogW - 40, 20 }, "Enter Email Address:");
 
-        if (rl::GuiTextBox(rl::Rectangle{dialogX + 20, dialogY + 70, dialogW - 40, 30}, uiState.accountEmailBuffer, 128, uiState.accountEditMode))
+        if (rl::GuiTextBox(rl::Rectangle{ dialogX + 20, dialogY + 70, dialogW - 40, 30 }, uiState.accountEmailBuffer, 128, uiState.accountEditMode))
         {
             uiState.accountEditMode = !uiState.accountEditMode;
         }
 
-        if (rl::GuiButton(rl::Rectangle{dialogX + 20, dialogY + 115, 130, 35}, "Save"))
+        if (rl::GuiButton(rl::Rectangle{ dialogX + 20, dialogY + 115, 130, 35 }, "Save"))
         {
             if (uiState.accountEmailBuffer[0] != '\0')
             {
@@ -336,7 +375,8 @@ namespace UI
                 accounts.push_back(newAccount);
 
                 nav_state.activeAccount = nullptr;
-                for (auto &acc : accounts)
+
+                for (auto& acc : accounts)
                 {
                     if (acc.id == currentActiveId)
                     {
@@ -344,14 +384,15 @@ namespace UI
                         break;
                     }
                 }
-                dataChanged = true;
+
+                MarkDirty(uiState);
             }
             uiState.showAddAccountDialog = false;
             uiState.accountEditMode = false;
             uiState.accountEmailBuffer[0] = '\0';
         }
 
-        if (rl::GuiButton(rl::Rectangle{dialogX + 170, dialogY + 115, 130, 35}, "Cancel"))
+        if (rl::GuiButton(rl::Rectangle{ dialogX + 170, dialogY + 115, 130, 35 }, "Cancel"))
         {
             uiState.showAddAccountDialog = false;
             uiState.accountEditMode = false;
@@ -359,7 +400,7 @@ namespace UI
         }
     }
 
-    void RenderAddCharacterDialog(Navigation &nav_state, int screenWidth, int screenHeight, UIState &uiState, bool &dataChanged)
+    void RenderAddCharacterDialog(Navigation& nav_state, int screenWidth, int screenHeight, UIState& uiState)
     {
         if (!uiState.showAddCharDialog || nav_state.activeAccount == nullptr)
             return;
@@ -371,7 +412,7 @@ namespace UI
         float dialogX = (screenWidth - dialogW) / 2.0f;
         float dialogY = (screenHeight - dialogH) / 2.0f;
 
-        if (rl::GuiWindowBox(rl::Rectangle{dialogX, dialogY, dialogW, dialogH}, "New Character"))
+        if (rl::GuiWindowBox(rl::Rectangle{ dialogX, dialogY, dialogW, dialogH }, "New Character"))
         {
             uiState.showAddCharDialog = false;
             uiState.charEditMode = false;
@@ -380,14 +421,14 @@ namespace UI
 
         rl::GuiUnlock();
 
-        rl::GuiLabel(rl::Rectangle{dialogX + 20, dialogY + 45, dialogW - 40, 20}, "Enter Character Name:");
+        rl::GuiLabel(rl::Rectangle{ dialogX + 20, dialogY + 45, dialogW - 40, 20 }, "Enter Character Name:");
 
-        if (rl::GuiTextBox(rl::Rectangle{dialogX + 20, dialogY + 70, dialogW - 40, 30}, uiState.charNameBuffer, 128, uiState.charEditMode))
+        if (rl::GuiTextBox(rl::Rectangle{ dialogX + 20, dialogY + 70, dialogW - 40, 30 }, uiState.charNameBuffer, 128, uiState.charEditMode))
         {
             uiState.charEditMode = !uiState.charEditMode;
         }
 
-        if (rl::GuiButton(rl::Rectangle{dialogX + 20, dialogY + 115, 130, 35}, "Save"))
+        if (rl::GuiButton(rl::Rectangle{ dialogX + 20, dialogY + 115, 130, 35 }, "Save"))
         {
             if (uiState.charNameBuffer[0] != '\0')
             {
@@ -400,7 +441,7 @@ namespace UI
                 nav_state.activeAccount->characters.push_back(newChar);
 
                 nav_state.activeCharacter = nullptr;
-                for (auto &ch : nav_state.activeAccount->characters)
+                for (auto& ch : nav_state.activeAccount->characters)
                 {
                     if (ch.id == activeCharId)
                     {
@@ -408,14 +449,14 @@ namespace UI
                         break;
                     }
                 }
-                dataChanged = true;
+                MarkDirty(uiState);
             }
             uiState.showAddCharDialog = false;
             uiState.charEditMode = false;
             uiState.charNameBuffer[0] = '\0';
         }
 
-        if (rl::GuiButton(rl::Rectangle{dialogX + 170, dialogY + 115, 130, 35}, "Cancel"))
+        if (rl::GuiButton(rl::Rectangle{ dialogX + 170, dialogY + 115, 130, 35 }, "Cancel"))
         {
             uiState.showAddCharDialog = false;
             uiState.charEditMode = false;
@@ -425,7 +466,7 @@ namespace UI
 
     void InitTheme()
     {
-        const unsigned char *styleData = nullptr;
+        const unsigned char* styleData = nullptr;
         unsigned int styleSize = 0;
 
         if (GetEmbeddedBuffer(102, &styleData, &styleSize))

@@ -2,6 +2,7 @@
 #include "raylib_wrapper.h"
 #include <fstream>
 #include "config.h"
+#include <iostream>
 
 namespace Store {
 
@@ -10,7 +11,6 @@ namespace Store {
     static SaveData GetCurrentSaveOrDefault() {
         std::ifstream file(SAVE_FILE_PATH);
         if (!file.is_open()) {
-            OutputDebugStringA("No file open");
             return SaveData();
         }
 
