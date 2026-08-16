@@ -3,7 +3,6 @@
 #include "ui.h"
 
 namespace APP {
-
 	void RunApp();
 	void Update();
 }

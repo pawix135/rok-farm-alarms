@@ -45,7 +45,6 @@ namespace ROK
         std::string name;
         std::vector<Gatherer> gatherers;
 
-        Character() = default;
     };
 
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, gatherers)
@@ -55,8 +54,6 @@ namespace ROK
         int id;
         std::string email;
         std::vector<Character> characters;
-
-        Account() = default;
 
         void AddCharacter(int charId, std::string charName);
     };

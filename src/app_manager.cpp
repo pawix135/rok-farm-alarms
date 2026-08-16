@@ -23,6 +23,9 @@ namespace APP {
 		// Load accounts, window size and other user settings
 		user_save = Store::LoadAll();
 		accounts = user_save.accounts;
+        ui_state.windowWidth = user_save.window_width;
+        ui_state.windowHeight = user_save.window_height;
+
 		
 		UI::InitUI(user_save);
 
@@ -36,7 +39,7 @@ namespace APP {
 			if (!rl::IsWindowHidden())
 			{
                 // Stop rendering if app is in tray
-				UI::RenderUI(navigation_state, accounts, user_save.window_width, user_save.window_height, ui_state);
+				UI::RenderUI(navigation_state, accounts, ui_state);
 
                 // Change in accounts or characters - save
 				if (ui_state.needSave)
@@ -79,7 +82,11 @@ namespace APP {
 
         if (rl::IsWindowResized())
         {
-            Store::SaveWindowSizeOnly(rl::GetRenderWidth(), rl::GetRenderHeight());
+            int w = rl::GetRenderWidth();
+            int h = rl::GetRenderHeight();
+            ui_state.windowWidth = w;
+            ui_state.windowHeight = h;
+            Store::SaveWindowSizeOnly(w, h);
         }
 
         if (rl::WindowShouldClose())
@@ -88,14 +95,20 @@ namespace APP {
             rl::ClearWindowState(rl::FLAG_WINDOW_HIDDEN);
         }
 
-        /*if (rl::IsKeyPressed(rl::KEY_H)) {
+		/*if (rl::IsKeyPressed(rl::KEY_H)) {
             WinApp::HideToTray();
             rl::ClearWindowState(rl::FLAG_WINDOW_HIDDEN);
         }*/
 
-        if (rl::IsKeyPressed(rl::KEY_Q))
-        {
-            WinApp::Exit();
+        bool isEditingMode = ui_state.charEditMode || ui_state.accountEditMode;
+
+        if (!isEditingMode) {
+
+            if (rl::IsKeyPressed(rl::KEY_Q))
+            {
+                WinApp::Exit();
+            }
         }
+
     }
 }

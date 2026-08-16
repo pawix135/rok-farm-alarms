@@ -40,6 +40,8 @@ namespace UI
         rl::Rectangle timersViewScrollRect = { 0 };
 
         int lastActiveCharacterId = -1;
+        int windowWidth = 800;
+        int windowHeight = 600;
     };
 
     void InitUI(Store::SaveData user_save);
@@ -47,12 +49,12 @@ namespace UI
     void UpdateWindowIcon();
     void SetWorkingDirectory();
     HWND GetWindowHandle();
-    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, int width, int height, UIState& uiState);
-    void RenderAccountPanel(Navigation& nav_state, std::vector<ROK::Account>& accounts, int width, int height, UIState& uiState);
+    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState);
+    void RenderAccountPanel(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState);
     void RenderCharacterSelectPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState);
     void RenderAddAlarmPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState);
     void RenderActiveTimersPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState);
-    void RenderAddCharacterDialog(Navigation& nav_state, int screenWidth, int screenHeight, UIState& uiState);
-    void RenderAddAccountDialog(Navigation& nav_state, std::vector<ROK::Account>& accounts, int screenWidth, int screenHeight, UIState& uiState);
+    void RenderAddCharacterDialog(Navigation& nav_state, UIState& uiState);
+    void RenderAddAccountDialog(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState);
     void MarkDirty(UIState& uiState);
 }

@@ -8,7 +8,6 @@
 
 namespace UI
 {
-
     static void ResetTimerForm(UIState& uiState)
     {
         uiState.hours = 0;
@@ -30,7 +29,7 @@ namespace UI
         rl::SetConfigFlags(rl::FLAG_WINDOW_RESIZABLE);
         rl::InitWindow(user_save.window_width, user_save.window_height, APP_NAME);
 
-        rl::SetTargetFPS(30);
+        rl::SetTargetFPS(15);
 
         // Change app icon from default
         UpdateWindowIcon();
@@ -60,7 +59,7 @@ namespace UI
         return (HWND)rl::GetWindowHandle();
     }
 
-    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, int width, int height, UIState& uiState)
+    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState)
     {
         rl::BeginDrawing();
         rl::ClearBackground(rl::GRAY);
@@ -72,28 +71,31 @@ namespace UI
             uiState.lastActiveCharacterId = currentCharacterId;
         }
 
-        float leftPanelWidth = width / 3.0f;
+        float leftPanelWidth = uiState.windowWidth / 3.0f;
         float rightPanelX = leftPanelWidth;
-        float rightPanelWidth = width - leftPanelWidth;
-        float timersPanelHeight = height - CHARACTER_PANEL_HEIGHT - ALARM_PANEL_HEIGHT;
+        float rightPanelWidth = uiState.windowWidth - leftPanelWidth;
+        float timersPanelHeight = uiState.windowHeight - CHARACTER_PANEL_HEIGHT - ALARM_PANEL_HEIGHT;
 
-        RenderAccountPanel(nav_state, accounts, width, height, uiState);
+        RenderAccountPanel(nav_state, accounts, uiState);
         RenderCharacterSelectPanel(nav_state, rightPanelX, 0, rightPanelWidth, CHARACTER_PANEL_HEIGHT, uiState);
         RenderAddAlarmPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT, rightPanelWidth, ALARM_PANEL_HEIGHT, uiState);
         RenderActiveTimersPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT + ALARM_PANEL_HEIGHT, rightPanelWidth, timersPanelHeight, uiState);
 
-        RenderAddAccountDialog(nav_state, accounts, width, height, uiState);
-        RenderAddCharacterDialog(nav_state, width, height, uiState);
+        RenderAddAccountDialog(nav_state, accounts, uiState);
+        RenderAddCharacterDialog(nav_state, uiState);
+
+#ifdef _DEBUG
+        rl::DrawText(uiState.accountEditMode || uiState.charEditMode ? "Active" : "Inactive", 100, 100, 32, rl::RED);
+        rl::DrawFPS(rl::GetScreenWidth() - 100, 10);
+#endif
 
         rl::EndDrawing();
-
     }
 
-    void RenderAccountPanel(Navigation& nav_state, std::vector<ROK::Account>& accounts, int width, int height, UIState& uiState)
+    void RenderAccountPanel(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState)
     {
-
-        float panelWidth = width / 3.0f;
-        float panelHeight = (float)height;
+        float panelWidth = uiState.windowWidth / 3.0f;
+        float panelHeight = (float)uiState.windowHeight;
 
         rl::GuiPanel(rl::Rectangle{ 0, 0, panelWidth, panelHeight }, "Accounts");
 
@@ -161,7 +163,6 @@ namespace UI
 
     void RenderCharacterSelectPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState)
     {
-
         rl::GuiPanel(rl::Rectangle{ startX, startY, width, height }, "Characters");
 
         if (nav_state.activeAccount == nullptr)
@@ -288,8 +289,10 @@ namespace UI
         float padding = 10.0f;
         rl::Rectangle viewRect = { startX + padding, startY + 25.0f, width - 2 * padding, height - 35.0f };
 
+        auto& gatherers = nav_state.activeCharacter->gatherers;
+
         float itemHeight = 40.0f;
-        float totalContentHeight = nav_state.activeCharacter->gatherers.size() * (itemHeight + padding) + padding;
+        float totalContentHeight = gatherers.size() * (itemHeight + padding) + padding;
 
         if (totalContentHeight < viewRect.height)
         {
@@ -306,35 +309,33 @@ namespace UI
             float currentY = uiState.timersViewScrollRect.y + uiState.timersScrollPos.y + padding;
             float itemWidth = contentRect.width - padding;
 
-            auto& gatherers = nav_state.activeCharacter->gatherers;
+            int indexToRemove = -1;
 
-            for (size_t i = 0; i < gatherers.size();)
+            for (size_t i = 0; i < gatherers.size(); i++)
             {
                 auto& gatherer = gatherers[i];
 
                 rl::GuiPanel(rl::Rectangle{ currentX, currentY, itemWidth, itemHeight }, nullptr);
-
                 rl::GuiLabel(rl::Rectangle{ currentX + 10, currentY + 5, 200, 30 }, gatherer.GetFormattedTime().c_str());
 
-                bool isFinished = !gatherer.isActive || (gatherer.GetRemainingSeconds() <= 0.0f);
-                const char* buttonLabel = isFinished ? "REMOVE" : "STOP";
-
-                if (rl::GuiButton(rl::Rectangle{ currentX + itemWidth - 80, currentY + 5, 70, 30 }, buttonLabel))
+                if (rl::GuiButton(rl::Rectangle{ currentX + itemWidth - 80, currentY + 5, 70, 30 }, "REMOVE"))
                 {
-                    gatherers.erase(gatherers.begin() + i);
-                    MarkDirty(uiState);
-
-                    continue;
+                    indexToRemove = static_cast<int>(i);
                 }
 
                 currentY += itemHeight + padding;
-                i++;
+            }
+
+            if (indexToRemove != -1)
+            {
+                gatherers.erase(gatherers.begin() + indexToRemove);
+                MarkDirty(uiState);
             }
         }
         rl::EndScissorMode();
     }
 
-    void RenderAddAccountDialog(Navigation& nav_state, std::vector<ROK::Account>& accounts, int screenWidth, int screenHeight, UIState& uiState)
+    void RenderAddAccountDialog(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState)
     {
         if (!uiState.showAddAccountDialog)
             return;
@@ -343,8 +344,8 @@ namespace UI
 
         float dialogW = 320.0f;
         float dialogH = 170.0f;
-        float dialogX = (screenWidth - dialogW) / 2.0f;
-        float dialogY = (screenHeight - dialogH) / 2.0f;
+        float dialogX = (uiState.windowWidth - dialogW) / 2.0f;
+        float dialogY = (uiState.windowHeight - dialogH) / 2.0f;
 
         if (rl::GuiWindowBox(rl::Rectangle{ dialogX, dialogY, dialogW, dialogH }, "New Account"))
         {
@@ -400,7 +401,7 @@ namespace UI
         }
     }
 
-    void RenderAddCharacterDialog(Navigation& nav_state, int screenWidth, int screenHeight, UIState& uiState)
+    void RenderAddCharacterDialog(Navigation& nav_state, UIState& uiState)
     {
         if (!uiState.showAddCharDialog || nav_state.activeAccount == nullptr)
             return;
@@ -409,8 +410,8 @@ namespace UI
 
         float dialogW = 320.0f;
         float dialogH = 170.0f;
-        float dialogX = (screenWidth - dialogW) / 2.0f;
-        float dialogY = (screenHeight - dialogH) / 2.0f;
+        float dialogX = (uiState.windowWidth - dialogW) / 2.0f;
+        float dialogY = (uiState.windowHeight - dialogH) / 2.0f;
 
         if (rl::GuiWindowBox(rl::Rectangle{ dialogX, dialogY, dialogW, dialogH }, "New Character"))
         {
