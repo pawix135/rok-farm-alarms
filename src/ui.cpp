@@ -115,10 +115,15 @@ namespace UI
         {
             float startX = uiState.accountViewScrollRect.x + 5.0f;
             float startY = uiState.accountViewScrollRect.y + uiState.accountScrollPos.y + 5.0f;
-            float buttonWidth = contentRect.width - 10.0f;
+            float deleteBtnWidth = 45.0f;
+            float totalRowWidth = contentRect.width - 10.0f;
+            float accountBtnWidth = totalRowWidth - deleteBtnWidth - 5.0f;
 
-            for (auto& acc : accounts)
+            int accountToRemoveIndex = -1;
+
+            for (size_t i = 0; i < accounts.size(); ++i)
             {
+                auto& acc = accounts[i];
                 bool isSelected = (nav_state.activeAccount != nullptr && nav_state.activeAccount->id == acc.id);
 
                 if (isSelected)
@@ -126,7 +131,7 @@ namespace UI
                     rl::GuiSetState(rl::STATE_PRESSED);
                 }
 
-                if (rl::GuiButton(rl::Rectangle{ startX, startY, buttonWidth, 40 }, acc.email.c_str()))
+                if (rl::GuiButton(rl::Rectangle{ startX, startY, accountBtnWidth, 40 }, acc.email.c_str()))
                 {
                     nav_state.activeAccount = &acc;
 
@@ -141,7 +146,25 @@ namespace UI
                 }
 
                 rl::GuiSetState(rl::STATE_NORMAL);
+
+                if (rl::GuiButton(rl::Rectangle{ startX + accountBtnWidth + 5.0f, startY, deleteBtnWidth, 40 }, "#143#"))
+                {
+                    accountToRemoveIndex = static_cast<int>(i);
+                }
+
                 startY += 50.0f;
+            }
+
+            if (accountToRemoveIndex != -1)
+            {
+                if (nav_state.activeAccount != nullptr && nav_state.activeAccount->id == accounts[accountToRemoveIndex].id)
+                {
+                    nav_state.activeAccount = nullptr;
+                    nav_state.activeCharacter = nullptr;
+                }
+
+                accounts.erase(accounts.begin() + accountToRemoveIndex);
+                MarkDirty(uiState);
             }
         }
         rl::EndScissorMode();
@@ -193,8 +216,11 @@ namespace UI
             float currentX = uiState.characterViewScrollRect.x + uiState.characterScrollPos.x + padding;
             float currentY = uiState.characterViewScrollRect.y + 5.0f;
 
-            for (auto& character : nav_state.activeAccount->characters)
+            int charToRemoveIndex = -1;
+
+            for (size_t i = 0; i < nav_state.activeAccount->characters.size(); ++i)
             {
+                auto& character = nav_state.activeAccount->characters[i];
                 bool isSelected = (nav_state.activeCharacter != nullptr && nav_state.activeCharacter->id == character.id);
 
                 if (isSelected)
@@ -208,7 +234,27 @@ namespace UI
                 }
 
                 rl::GuiSetState(rl::STATE_NORMAL);
+
+                float deleteSize = 22.0f;
+                rl::Rectangle deleteRect = { currentX + buttonWidth - deleteSize - 2.0f, currentY + 2.0f, deleteSize, deleteSize };
+
+                if (rl::GuiButton(deleteRect, "#143#"))
+                {
+                    charToRemoveIndex = static_cast<int>(i);
+                }
+
                 currentX += buttonWidth + padding;
+            }
+
+            if (charToRemoveIndex != -1)
+            {
+                if (nav_state.activeCharacter != nullptr && nav_state.activeCharacter->id == nav_state.activeAccount->characters[charToRemoveIndex].id)
+                {
+                    nav_state.activeCharacter = nullptr;
+                }
+
+                nav_state.activeAccount->characters.erase(nav_state.activeAccount->characters.begin() + charToRemoveIndex);
+                MarkDirty(uiState);
             }
 
             if (rl::GuiButton(rl::Rectangle{ currentX, currentY, buttonWidth, buttonHeight }, "ADD +"))
@@ -356,7 +402,7 @@ namespace UI
 
         rl::GuiUnlock();
 
-        rl::GuiLabel(rl::Rectangle{ dialogX + 20, dialogY + 45, dialogW - 40, 20 }, "Enter Email Address:");
+        rl::GuiLabel(rl::Rectangle{ dialogX + 20, dialogY + 45, dialogW - 40, 20 }, "Enter Account Name:");
 
         if (rl::GuiTextBox(rl::Rectangle{ dialogX + 20, dialogY + 70, dialogW - 40, 30 }, uiState.accountEmailBuffer, 128, uiState.accountEditMode))
         {
