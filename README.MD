@@ -20,7 +20,7 @@ A desktop application designed to track resource node gathering times in Rise of
 
 ## TODO
 
-[] User settings
-[] Custom sound for alarm/notifications
-[] UI and UX revamp
-[] Move to semver
+- [ ] User settings
+- [ ] Custom sound for alarm/notifications
+- [ ] UI and UX revamp
+- [ ] Move to semver
