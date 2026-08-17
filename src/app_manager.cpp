@@ -13,23 +13,22 @@ namespace APP {
 		std::vector<ROK::Account> accounts;
         UI::UIState ui_state = {};
         Navigation navigation_state = { 0 };
+        ROK::ResourceImages resourceImages;
 	}
 
 	void RunApp() {
 
-        // Change CWD to .exe folder 
         UI::SetWorkingDirectory();
 
-		// Load accounts, window size and other user settings
 		user_save = Store::LoadAll();
 		accounts = user_save.accounts;
         ui_state.windowWidth = user_save.window_width;
         ui_state.windowHeight = user_save.window_height;
-
 		
 		UI::InitUI(user_save);
 
-        // Setup Windows notification system
+        resourceImages.LoadAll();
+
 		WinApp::Init(UI::GetWindowHandle());
 
 		while (WinApp::ShouldExit())
@@ -38,10 +37,8 @@ namespace APP {
 
 			if (!rl::IsWindowHidden())
 			{
-                // Stop rendering if app is in tray
-				UI::RenderUI(navigation_state, accounts, ui_state);
+				UI::RenderUI(navigation_state, accounts, ui_state, resourceImages);
 
-                // Change in accounts or characters - save
 				if (ui_state.needSave)
 				{
 					Store::SaveAccountsOnly(accounts);
@@ -54,6 +51,7 @@ namespace APP {
 			}
 		}
 
+        Cleanup();
 
 	}
 
@@ -95,11 +93,6 @@ namespace APP {
             rl::ClearWindowState(rl::FLAG_WINDOW_HIDDEN);
         }
 
-		/*if (rl::IsKeyPressed(rl::KEY_H)) {
-            WinApp::HideToTray();
-            rl::ClearWindowState(rl::FLAG_WINDOW_HIDDEN);
-        }*/
-
         bool isEditingMode = ui_state.charEditMode || ui_state.accountEditMode;
 
         if (!isEditingMode) {
@@ -110,5 +103,11 @@ namespace APP {
             }
         }
 
+    }
+    
+    void Cleanup() {
+        resourceImages.UnloadAll();
+        WinApp::Cleanup();
+        UI::Cleanup();
     }
 }

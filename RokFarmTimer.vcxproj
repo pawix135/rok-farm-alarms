@@ -147,6 +147,11 @@
     <ClInclude Include="include\app_manager.h" />
     <ClInclude Include="include\config.h" />
     <ClInclude Include="include\helpers.h" />
+    <ClInclude Include="include\images\img_food.h" />
+    <ClInclude Include="include\images\img_gem.h" />
+    <ClInclude Include="include\images\img_gold.h" />
+    <ClInclude Include="include\images\img_stone.h" />
+    <ClInclude Include="include\images\img_wood.h" />
     <ClInclude Include="include\json.hpp" />
     <ClInclude Include="include\navigation_state.h" />
     <ClInclude Include="include\raygui.h" />

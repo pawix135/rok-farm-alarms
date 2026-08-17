@@ -5,4 +5,5 @@
 namespace APP {
 	void RunApp();
 	void Update();
+	void Cleanup();
 }

@@ -25,18 +25,15 @@ namespace UI
 
     void InitUI(Store::SaveData user_save) {
 
-        // App window
         rl::SetConfigFlags(rl::FLAG_WINDOW_RESIZABLE);
         rl::InitWindow(user_save.window_width, user_save.window_height, APP_NAME);
 
         rl::SetTargetFPS(15);
 
-        // Change app icon from default
         UpdateWindowIcon();
 
         InitTheme();
 
-        // Remove ESC as exit key
         rl::SetExitKey(rl::KEY_NULL);
 
     }
@@ -59,7 +56,29 @@ namespace UI
         return (HWND)rl::GetWindowHandle();
     }
 
-    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState)
+    void RenderResourceDropdownOverlay(Navigation& nav_state, float startX, float startY, UIState& uiState)
+    {
+        if (nav_state.activeCharacter == nullptr)
+            return;
+
+        float innerY = startY + 35.0f;
+        float currentX = startX + 10.0f;
+
+        currentX += 35 + 5;
+        currentX += 35 + 5;
+        currentX += 35 + 5;
+        currentX += 35 + 15;
+        currentX += 30 + 5;
+        currentX += 80 + 15;
+        currentX += 30 + 5;
+
+        if (rl::GuiDropdownBox(rl::Rectangle{ currentX, innerY, 110, 25 }, "Food;Wood;Stone;Gold;Gems", &uiState.activeResource, uiState.resourceEditMode))
+        {
+            uiState.resourceEditMode = !uiState.resourceEditMode;
+        }
+    }
+
+    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState, const ROK::ResourceImages& resourceImages)
     {
         rl::BeginDrawing();
         rl::ClearBackground(rl::GRAY);
@@ -79,14 +98,15 @@ namespace UI
         RenderAccountPanel(nav_state, accounts, uiState);
         RenderCharacterSelectPanel(nav_state, rightPanelX, 0, rightPanelWidth, CHARACTER_PANEL_HEIGHT, uiState);
         RenderAddAlarmPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT, rightPanelWidth, ALARM_PANEL_HEIGHT, uiState);
-        RenderActiveTimersPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT + ALARM_PANEL_HEIGHT, rightPanelWidth, timersPanelHeight, uiState);
+        RenderActiveTimersPanel(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT + ALARM_PANEL_HEIGHT, rightPanelWidth, timersPanelHeight, uiState, resourceImages);
+
+        RenderResourceDropdownOverlay(nav_state, rightPanelX, CHARACTER_PANEL_HEIGHT, uiState);
 
         RenderAddAccountDialog(nav_state, accounts, uiState);
         RenderAddCharacterDialog(nav_state, uiState);
 
 #ifdef _DEBUG
-        rl::DrawText(uiState.accountEditMode || uiState.charEditMode ? "Active" : "Inactive", 100, 100, 32, rl::RED);
-        rl::DrawFPS(rl::GetScreenWidth() - 100, 10);
+        DrawDebug(uiState);
 #endif
 
         rl::EndDrawing();
@@ -291,15 +311,17 @@ namespace UI
         currentX += 50;
 
         rl::GuiLabel(rl::Rectangle{ currentX, innerY, 30, 25 }, "Lvl:");
-        currentX += 30;
+        currentX += 35;
         if (rl::GuiSpinner(rl::Rectangle{ currentX, innerY, 80, 25 }, nullptr, &uiState.activeLevel, 1, 9, uiState.levelEditMode))
             uiState.levelEditMode = !uiState.levelEditMode;
         currentX += 95;
 
-        float resX = currentX;
-        currentX += 115;
+        rl::GuiLabel(rl::Rectangle{ currentX, innerY, 30, 25 }, "Res:");
 
-        if (rl::GuiButton(rl::Rectangle{ currentX, innerY, 80, 25 }, "START"))
+        float startBtnWidth = 80.0f;
+        float startBtnX = startX + width - startBtnWidth - 10.0f;
+
+        if (rl::GuiButton(rl::Rectangle{ startBtnX, innerY, startBtnWidth, 25 }, "START"))
         {
             int totalSecs = (uiState.hours * 3600) + (uiState.minutes * 60) + uiState.seconds;
             if (totalSecs > 0)
@@ -317,15 +339,9 @@ namespace UI
                 uiState.seconds = 0;
             }
         }
-
-        rl::GuiLabel(rl::Rectangle{ resX, innerY, 30, 25 }, "Res:");
-        if (rl::GuiDropdownBox(rl::Rectangle{ resX + 30, innerY, 70, 25 }, "Food;Wood;Stone;Gold;Gems", &uiState.activeResource, uiState.resourceEditMode))
-        {
-            uiState.resourceEditMode = !uiState.resourceEditMode;
-        }
     }
 
-    void RenderActiveTimersPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState)
+    void RenderActiveTimersPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState, const ROK::ResourceImages& resourceImages)
     {
         rl::GuiPanel(rl::Rectangle{ startX, startY, width, height }, "Active Timers");
 
@@ -337,7 +353,7 @@ namespace UI
 
         auto& gatherers = nav_state.activeCharacter->gatherers;
 
-        float itemHeight = 40.0f;
+        float itemHeight = 100.0f;
         float totalContentHeight = gatherers.size() * (itemHeight + padding) + padding;
 
         if (totalContentHeight < viewRect.height)
@@ -353,7 +369,7 @@ namespace UI
         {
             float currentX = uiState.timersViewScrollRect.x + padding;
             float currentY = uiState.timersViewScrollRect.y + uiState.timersScrollPos.y + padding;
-            float itemWidth = contentRect.width - padding;
+            float itemWidth = uiState.timersViewScrollRect.width - (2 * padding);
 
             int indexToRemove = -1;
 
@@ -362,9 +378,68 @@ namespace UI
                 auto& gatherer = gatherers[i];
 
                 rl::GuiPanel(rl::Rectangle{ currentX, currentY, itemWidth, itemHeight }, nullptr);
-                rl::GuiLabel(rl::Rectangle{ currentX + 10, currentY + 5, 200, 30 }, gatherer.GetFormattedTime().c_str());
 
-                if (rl::GuiButton(rl::Rectangle{ currentX + itemWidth - 80, currentY + 5, 70, 30 }, "REMOVE"))
+                float imgSize = 68.0f;
+                float imgX = currentX + 16.0f;
+                float imgY = currentY + (itemHeight - imgSize) / 2.0f;
+
+                const rl::Texture2D& tex = GetResourceTexture(gatherer.resource, resourceImages);
+
+                rl::DrawTexturePro(
+                    tex,
+                    rl::Rectangle{ 0, 0, (float)tex.width, (float)tex.height },
+                    rl::Rectangle{ imgX, imgY, imgSize, imgSize },
+                    rl::Vector2{ 0, 0 }, 0.0f, rl::WHITE
+                );
+
+                std::string lvlText = std::to_string(gatherer.resourceLvl);
+                float badgeWidth = 24.0f;
+                float badgeHeight = 24.0f;
+                float badgeX = imgX + imgSize - badgeWidth;
+                float badgeY = imgY + imgSize - badgeHeight;
+
+                rl::DrawRectangle((int)badgeX, (int)badgeY, (int)badgeWidth, (int)badgeHeight, rl::BLACK);
+                rl::DrawRectangleLines((int)badgeX, (int)badgeY, (int)badgeWidth, (int)badgeHeight, rl::DARKGRAY);
+                rl::DrawText(lvlText.c_str(), (int)badgeX + 7, (int)badgeY + 4, 16, rl::WHITE);
+
+                float totalSecs = gatherer.GetRemainingSeconds();
+                if (totalSecs < 0.0f) totalSecs = 0.0f;
+
+                int h = static_cast<int>(totalSecs) / 3600;
+                int m = (static_cast<int>(totalSecs) % 3600) / 60;
+                int s = static_cast<int>(totalSecs) % 60;
+
+                float squareSize = 70.0f;
+                float boxY = currentY + (itemHeight - squareSize) / 2.0f;
+                float startBoxX = imgX + imgSize + 25.0f;
+                float gap = 12.0f;
+
+                char hBuf[8], mBuf[8], sBuf[8];
+                snprintf(hBuf, sizeof(hBuf), "%02dh", h);
+                snprintf(mBuf, sizeof(mBuf), "%02dm", m);
+                snprintf(sBuf, sizeof(sBuf), "%02ds", s);
+
+                const char* timeStrings[3] = { hBuf, mBuf, sBuf };
+
+                for (int t = 0; t < 3; t++)
+                {
+                    float boxX = startBoxX + t * (squareSize + gap);
+                    rl::Rectangle boxRect = { boxX, boxY, squareSize, squareSize };
+
+                    rl::DrawRectangleLinesEx(boxRect, 2.0f, rl::GRAY);
+
+                    int fontSize = 20;
+                    int textWidth = rl::MeasureText(timeStrings[t], fontSize);
+                    int textX = (int)(boxX + (squareSize - textWidth) / 2.0f);
+                    int textY = (int)(boxY + (squareSize - fontSize) / 2.0f);
+
+                    rl::DrawText(timeStrings[t], textX, textY, fontSize, rl::LIGHTGRAY);
+                }
+
+                float deleteSize = 36.0f;
+                rl::Rectangle deleteRect = { currentX + itemWidth - deleteSize - 16.0f, currentY + (itemHeight - deleteSize) / 2.0f, deleteSize, deleteSize };
+
+                if (rl::GuiButton(deleteRect, "#143#"))
                 {
                     indexToRemove = static_cast<int>(i);
                 }
@@ -524,5 +599,14 @@ namespace UI
         {
             rl::GuiLoadStyle("resources/style_dark.rgs");
         }
+    }
+
+    void DrawDebug(UIState& uiState) {
+        rl::DrawFPS(rl::GetScreenWidth() - 75, 10);
+        rl::DrawText("DEBUG", rl::GetScreenWidth() - rl::MeasureText("DEBUG", 25) - 50, rl::GetScreenHeight() - 15 - 25, 25, rl::RED);
+    }
+
+    void Cleanup() {
+        rl::CloseWindow();
     }
 }

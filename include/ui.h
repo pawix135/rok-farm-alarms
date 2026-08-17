@@ -49,12 +49,15 @@ namespace UI
     void UpdateWindowIcon();
     void SetWorkingDirectory();
     HWND GetWindowHandle();
-    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState);
+    void RenderUI(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState, const ROK::ResourceImages& resourceImages);
     void RenderAccountPanel(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState);
     void RenderCharacterSelectPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState);
     void RenderAddAlarmPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState);
-    void RenderActiveTimersPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState);
+    void RenderActiveTimersPanel(Navigation& nav_state, float startX, float startY, float width, float height, UIState& uiState, const ROK::ResourceImages& resourceImages);
     void RenderAddCharacterDialog(Navigation& nav_state, UIState& uiState);
     void RenderAddAccountDialog(Navigation& nav_state, std::vector<ROK::Account>& accounts, UIState& uiState);
+    void RenderResourceDropdownOverlay(Navigation& nav_state, float startX, float startY, UIState& uiState);
     void MarkDirty(UIState& uiState);
+    void DrawDebug(UIState& uiState);
+    void Cleanup();
 }

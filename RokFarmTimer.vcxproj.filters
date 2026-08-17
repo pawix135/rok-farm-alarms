@@ -22,6 +22,9 @@
     <Filter Include="Libs">
       <UniqueIdentifier>{3ef8eb43-3254-4bda-ba5d-9bdf2ce687a8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Include\imagess">
+      <UniqueIdentifier>{1bc52316-4770-4f89-9fdc-ebd90123ef67}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\raygui.h">
@@ -74,6 +77,21 @@
     </ClInclude>
     <ClInclude Include="include\app_manager.h">
       <Filter>Header Files\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\images\img_food.h">
+      <Filter>Header Files\Include\imagess</Filter>
+    </ClInclude>
+    <ClInclude Include="include\images\img_gem.h">
+      <Filter>Header Files\Include\imagess</Filter>
+    </ClInclude>
+    <ClInclude Include="include\images\img_gold.h">
+      <Filter>Header Files\Include\imagess</Filter>
+    </ClInclude>
+    <ClInclude Include="include\images\img_stone.h">
+      <Filter>Header Files\Include\imagess</Filter>
+    </ClInclude>
+    <ClInclude Include="include\images\img_wood.h">
+      <Filter>Header Files\Include\imagess</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

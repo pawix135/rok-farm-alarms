@@ -2,8 +2,40 @@
 #include <cstdio>
 #include <ctime>
 
+#include "images/img_gem.h"
+#include "images/img_food.h"
+#include "images/img_wood.h"
+#include "images/img_stone.h"
+#include "images/img_gold.h"
+
 namespace ROK
 {
+    void ResourceImages::LoadAll() {
+        food = LoadTextureFromMemory(".png", food_png, food_png_len);
+        wood = LoadTextureFromMemory(".png", wood_png, wood_png_len);
+        stone = LoadTextureFromMemory(".png", stone_png, stone_png_len);
+        gold = LoadTextureFromMemory(".png", gold_png, gold_png_len);
+        gem = LoadTextureFromMemory(".png", gem_png, gem_png_len);
+    }
+
+    const rl::Texture2D& GetResourceTexture(ROK::ResourceType type, const ROK::ResourceImages& images) {
+        switch (type) {
+        case ROK::ResourceType::Food: return images.food;
+        case ROK::ResourceType::Wood: return images.wood;
+        case ROK::ResourceType::Stone: return images.stone;
+        case ROK::ResourceType::Gold: return images.gold;
+        case ROK::ResourceType::Gems: return images.gem;
+        default: return images.food;
+        }
+    }
+
+    void ResourceImages::UnloadAll() {
+        UnloadTexture(gem);
+        UnloadTexture(food);
+        UnloadTexture(wood);
+        UnloadTexture(stone);
+        UnloadTexture(gold);
+    }
 
     std::string Gatherer::GetFormattedTime() const
     {
