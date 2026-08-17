@@ -24,3 +24,13 @@ A desktop application designed to track resource node gathering times in Rise of
 - [ ] Custom sound for alarm/notifications
 - [ ] UI and UX revamp
 - [ ] Move to semver
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+### Disclaimer
+
+This project is an unofficial fan-made tool and is not affiliated, associated, authorized, endorsed by, or in any way officially connected with Lilith Games or Rise of Kingdoms. All game content, trademarks, images, and assets are the property of their respective owners.
