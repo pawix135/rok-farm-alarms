@@ -1,8 +1,26 @@
-# Farm Alarms for Rise of Kingdoms v1.0
+# Farm Alarms for Rise of Kingdom
 
-![Application preview](/images/farm_alarms_1.png)
+A desktop application designed to track resource node gathering times in Rise of Kingdoms. It lets you create accounts and manage multiple characters under each account. For every character, you can set independent timers for available resource nodes in ROK. When a timer finishes, a native Windows notification is triggered.
 
-Base implementation of a farm alarm system. You'll get Windows notifications when your farms are done with gathering.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pawix135/rok-farm-alarms/refs/heads/main/images/farm_alarms_1.png" width="600" alt="App Preview">
+</p>
+
+## Features
+
+* Multi-account management
+* Character creation per account
+* Multiple resource node timers per character
+* Native Windows desktop notifications on timer completion
+* Runs in the system tray when minimized
 
 ## Shortcuts
-- q - Quit progran
+
+* `q` - Quits the application (the exit button minimizes the app to the system tray)
+
+## TODO
+
+[] User settings
+[] Custom sound for alarm/notifications
+[] UI and UX revamp
+[] Move to semver
